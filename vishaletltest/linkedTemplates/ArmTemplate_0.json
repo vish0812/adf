@@ -27,6 +27,10 @@
 			"type": "secureString",
 			"metadata": "Secure string for 'password' of 'AzureSqlDatabaseposts'"
 		},
+		"AzureDatabricks notebooks_properties_typeProperties_existingClusterId": {
+			"type": "string",
+			"defaultValue": "1229-145043-xxl3hsbm"
+		},
 		"AzureSqlDatabase1_properties_typeProperties_server": {
 			"type": "string",
 			"defaultValue": "vishaladmin.database.windows.net"
@@ -98,6 +102,22 @@
 				"type": "AzureBlobStorage",
 				"typeProperties": {
 					"connectionString": "[parameters('AzureBlobStorage2_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AzureDatabricks notebooks')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureDatabricks",
+				"typeProperties": {
+					"domain": "https://adb-7405608623354291.11.azuredatabricks.net",
+					"authentication": "MSI",
+					"workspaceResourceId": "/subscriptions/4334ebd4-162a-48f6-a9fd-b7989ff3c7c2/resourceGroups/VishalPracticeResourceGroup/providers/Microsoft.Databricks/workspaces/vishaldatabrickstest",
+					"existingClusterId": "[parameters('AzureDatabricks notebooks_properties_typeProperties_existingClusterId')]"
 				}
 			},
 			"dependsOn": []
@@ -207,6 +227,64 @@
 				"typeProperties": {}
 			},
 			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/formula_1')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Ingest data",
+						"type": "DatabricksNotebook",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/formula1-project/ingestion",
+							"baseParameters": {
+								"p_data_source": {
+									"value": "@variables('v_datasource')",
+									"type": "Expression"
+								},
+								"p_file_date": {
+									"value": "@formatDateTime(pipeline().parameters.p_date, 'yyyy-MM-dd')",
+									"type": "Expression"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "AzureDatabricks notebooks",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"concurrency": 1,
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"p_date": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"v_datasource": {
+						"type": "String",
+						"defaultValue": "Ergast"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureDatabricks notebooks')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/AzureSqlCryptosink')]",
@@ -762,190 +840,6 @@
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/AzureSqlTable1')]",
 				"[concat(variables('factoryId'), '/datasets/DelimitedText1')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/dataflow1')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "AzureSqlTable2",
-								"type": "DatasetReference"
-							},
-							"name": "source1"
-						}
-					],
-					"sinks": [
-						{
-							"dataset": {
-								"referenceName": "DelimitedText1",
-								"type": "DatasetReference"
-							},
-							"name": "sink1",
-							"rejectedDataLinkedService": {
-								"referenceName": "AzureBlobStorage1",
-								"type": "LinkedServiceReference"
-							}
-						}
-					],
-					"transformations": [
-						{
-							"name": "filter1"
-						},
-						{
-							"name": "select1"
-						},
-						{
-							"name": "sort1"
-						}
-					],
-					"scriptLines": [
-						"source(output(",
-						"          ProductID as integer,",
-						"          Name as string,",
-						"          ProductNumber as string,",
-						"          Color as string,",
-						"          StandardCost as decimal(19,4),",
-						"          ListPrice as decimal(19,4),",
-						"          Size as string,",
-						"          Weight as decimal(8,2),",
-						"          ProductCategoryID as integer,",
-						"          ProductModelID as integer,",
-						"          SellStartDate as timestamp,",
-						"          SellEndDate as timestamp,",
-						"          DiscontinuedDate as timestamp,",
-						"          ThumbNailPhoto as binary,",
-						"          ThumbnailPhotoFileName as string,",
-						"          rowguid as string,",
-						"          ModifiedDate as timestamp",
-						"     ),",
-						"     allowSchemaDrift: false,",
-						"     validateSchema: false,",
-						"     isolationLevel: 'READ_UNCOMMITTED',",
-						"     format: 'table') ~> source1",
-						"source1 filter(isNull(DiscontinuedDate)) ~> filter1",
-						"filter1 select(mapColumn(",
-						"          ProductID,",
-						"          Name,",
-						"          ProductNumber,",
-						"          Color,",
-						"          StandardCost,",
-						"          ListPrice,",
-						"          Size,",
-						"          Weight,",
-						"          ProductCategoryID,",
-						"          ProductModelID,",
-						"          SellStartDate,",
-						"          SellEndDate,",
-						"          DiscontinuedDate,",
-						"          ThumbnailPhotoFileName,",
-						"          rowguid,",
-						"          ModifiedDate",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select1",
-						"source1 sort(asc(SellStartDate, true)) ~> sort1",
-						"sort1 sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     partitionFileNames:['vishaltest'],",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true,",
-						"     partitionBy('hash', 1)) ~> sink1"
-					]
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/AzureSqlTable2')]",
-				"[concat(variables('factoryId'), '/datasets/DelimitedText1')]",
-				"[concat(variables('factoryId'), '/linkedServices/AzureBlobStorage1')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/dataflow2')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "DelimitedText2",
-								"type": "DatasetReference"
-							},
-							"name": "source1"
-						}
-					],
-					"sinks": [
-						{
-							"dataset": {
-								"referenceName": "AzureSqlTable3",
-								"type": "DatasetReference"
-							},
-							"name": "sink1",
-							"rejectedDataLinkedService": {
-								"referenceName": "AzureBlobStorage1",
-								"type": "LinkedServiceReference"
-							}
-						}
-					],
-					"transformations": [
-						{
-							"name": "derivedColumn1"
-						},
-						{
-							"name": "surrogateKey1"
-						}
-					],
-					"scriptLines": [
-						"source(output(",
-						"          {Draw Date} as date 'MM/dd/yyyy',",
-						"          {Winning Numbers} as string,",
-						"          Multiplier as string",
-						"     ),",
-						"     allowSchemaDrift: false,",
-						"     validateSchema: false,",
-						"     ignoreNoFilesFound: false) ~> source1",
-						"source1 derive(numbers = split({Winning Numbers}, \" \")) ~> derivedColumn1",
-						"derivedColumn1 keyGenerate(output(id as long),",
-						"     startAt: 1L,",
-						"     stepValue: 1L) ~> surrogateKey1",
-						"surrogateKey1 sink(allowSchemaDrift: false,",
-						"     validateSchema: false,",
-						"     input(",
-						"          id as integer,",
-						"          drawDate as date,",
-						"          winninngNumber as string,",
-						"          multiplier as integer,",
-						"          derivedNumbers as string",
-						"     ),",
-						"     deletable:false,",
-						"     insertable:true,",
-						"     updateable:false,",
-						"     upsertable:false,",
-						"     format: 'table',",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true,",
-						"     errorHandlingOption: 'stopOnFirstError',",
-						"     mapColumn(",
-						"          id,",
-						"          drawDate = {Draw Date},",
-						"          winninngNumber = {Winning Numbers},",
-						"          multiplier = Multiplier,",
-						"          derivedNumbers = numbers",
-						"     )) ~> sink1"
-					]
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/DelimitedText2')]",
-				"[concat(variables('factoryId'), '/datasets/AzureSqlTable3')]",
-				"[concat(variables('factoryId'), '/linkedServices/AzureBlobStorage1')]"
 			]
 		}
 	]

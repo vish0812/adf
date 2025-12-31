@@ -20,6 +20,9 @@
 		"AzureSqlDatabaseposts_password": {
 			"value": ""
 		},
+		"AzureDatabricks notebooks_properties_typeProperties_existingClusterId": {
+			"value": "1229-145043-xxl3hsbm"
+		},
 		"AzureSqlDatabase1_properties_typeProperties_server": {
 			"value": "vishaladmin.database.windows.net"
 		},
