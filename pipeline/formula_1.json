@@ -1,0 +1,50 @@
+{
+	"name": "formula_1",
+	"properties": {
+		"activities": [
+			{
+				"name": "Ingest data",
+				"type": "DatabricksNotebook",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/formula1-project/ingestion",
+					"baseParameters": {
+						"p_data_source": {
+							"value": "@variables('v_datasource')",
+							"type": "Expression"
+						},
+						"p_file_date": {
+							"value": "@formatDateTime(pipeline().parameters.p_date, 'yyyy-MM-dd')",
+							"type": "Expression"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "AzureDatabricks notebooks",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"concurrency": 1,
+		"parameters": {
+			"p_date": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"v_datasource": {
+				"type": "String",
+				"defaultValue": "Ergast"
+			}
+		},
+		"annotations": []
+	}
+}
